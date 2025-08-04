@@ -258,56 +258,72 @@ class CalendarDashboard {
         const eventLocationEl = document.getElementById('event-location');
 
         // Show event time
-        const timeText = this.formatEventTime(event);
-        eventTimeEl.textContent = timeText;
+        if (eventTimeEl) {
+            const timeText = this.formatEventTime(event);
+            eventTimeEl.textContent = timeText;
+        }
 
         // Show event location
-        if (event.location && event.location.trim()) {
-            eventLocationEl.textContent = event.location.trim();
-            eventLocationEl.style.display = 'flex';
-        } else {
-            eventLocationEl.textContent = '';
-            eventLocationEl.style.display = 'none';
+        if (eventLocationEl) {
+            if (event.location && event.location.trim()) {
+                eventLocationEl.textContent = event.location.trim();
+                eventLocationEl.style.display = 'flex';
+            } else {
+                eventLocationEl.textContent = '';
+                eventLocationEl.style.display = 'none';
+            }
         }
     }
 
     renderBottomBar(upcomingEvents, currentEvent) {
-        document.getElementById('bottom-bar').style.display = 'flex';
+        const bottomBar = document.getElementById('bottom-bar');
+        const upcomingSummary = document.getElementById('upcoming-summary');
+        
+        if (bottomBar) {
+            bottomBar.style.display = 'flex';
+        }
 
         let nextEvent = null;
         if (currentEvent && upcomingEvents.length > 0) {
             // If showing current event, show next upcoming in bottom bar
             nextEvent = upcomingEvents[0];
             const timeUntil = this.getTimeUntilEvent(nextEvent);
-            document.getElementById('upcoming-summary').textContent =
-                `Nächste: ${timeUntil}, ${nextEvent.title}`;
+            if (upcomingSummary) {
+                upcomingSummary.textContent = `Nächste: ${timeUntil}, ${nextEvent.title}`;
+            }
         } else if (!currentEvent && upcomingEvents.length > 1) {
             // If showing next event, show the one after that
             nextEvent = upcomingEvents[1];
             const timeUntil = this.getTimeUntilEvent(nextEvent);
-            document.getElementById('upcoming-summary').textContent =
-                `Nächste: ${timeUntil}, ${nextEvent.title}`;
+            if (upcomingSummary) {
+                upcomingSummary.textContent = `Nächste: ${timeUntil}, ${nextEvent.title}`;
+            }
         } else {
-            document.getElementById('upcoming-summary').textContent = '';
+            if (upcomingSummary) {
+                upcomingSummary.textContent = '';
+            }
         }
 
         // Show duration of next event
-        if (nextEvent && nextEvent.end) {
-            const start = new Date(nextEvent.start);
-            const end = new Date(nextEvent.end);
-            const duration = Math.round((end - start) / (1000 * 60));
-            const hours = Math.floor(duration / 60);
-            const minutes = duration % 60;
+        const nextEventDuration = document.getElementById('next-event-duration');
+        if (nextEventDuration) {
+            if (nextEvent && nextEvent.end) {
+                const start = new Date(nextEvent.start);
+                const end = new Date(nextEvent.end);
+                const duration = Math.round((end - start) / (1000 * 60));
+                const hours = Math.floor(duration / 60);
+                const minutes = duration % 60;
 
-            let durationText = '';
-            if (hours > 0) {
-                durationText = `${hours}h ${minutes > 0 ? minutes + 'm' : ''}`;
+                let durationText = '';
+                if (hours > 0) {
+                    durationText = `${hours}h ${minutes > 0 ? minutes + 'm' : ''}`;
+                } else {
+                    durationText = `${minutes}m`;
+                }
+                nextEventDuration.textContent = durationText;
             } else {
-                durationText = `${minutes}m`;
+                nextEventDuration.textContent = '';
             }
-            document.getElementById('next-event-duration').textContent = durationText;
-        } else {
-            document.getElementById('next-event-duration').textContent = '';
         }
     }
 
