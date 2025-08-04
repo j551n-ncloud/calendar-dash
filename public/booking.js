@@ -460,7 +460,7 @@ class CalendarBooking {
                 clientName: formData.get('clientName'),
                 clientEmail: formData.get('clientEmail'),
                 clientPhone: formData.get('clientPhone'),
-                location: formData.get('appointmentLocation') || this.selectedSlot.location || 'TBD',
+                location: formData.get('appointmentLocation') || this.selectedSlot.location || '',
                 notes: formData.get('notes')
             };
 

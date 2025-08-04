@@ -260,25 +260,56 @@ function parseICalData(icalData) {
 }
 
 function parseICalDate(dateString) {
-  // Handle different iCal date formats
-  if (dateString.includes('T')) {
-    // DateTime format: 20240101T120000Z or 20240101T120000
-    const cleanDate = dateString.replace(/[TZ]/g, '');
-    return moment(cleanDate, 'YYYYMMDDHHmmss').toDate();
-  } else {
-    // Date only format: 20240101
-    return moment(dateString, 'YYYYMMDD').toDate();
+  console.log('📅 Parsing iCal date:', dateString);
+  
+  try {
+    // Handle different iCal date formats
+    if (dateString.includes('T')) {
+      // DateTime format: 20240101T120000Z or 20240101T120000
+      const cleanDate = dateString.replace(/[TZ]/g, '');
+      const parsedDate = moment(cleanDate, 'YYYYMMDDHHmmss').toDate();
+      console.log(`   ✅ Parsed DateTime: ${dateString} -> ${parsedDate.toISOString()} (${parsedDate.toLocaleDateString()} ${parsedDate.toLocaleTimeString()})`);
+      return parsedDate;
+    } else {
+      // Date only format: 20240101
+      const parsedDate = moment(dateString, 'YYYYMMDD').toDate();
+      console.log(`   ✅ Parsed Date: ${dateString} -> ${parsedDate.toISOString()} (${parsedDate.toLocaleDateString()})`);
+      return parsedDate;
+    }
+  } catch (error) {
+    console.error(`❌ Error parsing date ${dateString}:`, error);
+    throw new Error(`Invalid date format: ${dateString}`);
   }
 }
 
 // Appointment booking functions
 function findFreeTimeSlots(events) {
+  console.log('🔍 Finding free time slots from events...');
+  console.log(`📋 Total events to check: ${events.length}`);
+  
   // Look for events with specific naming patterns
-  const freeTimeEvents = events.filter(event =>
-    event.title.includes('#freetime') ||
-    event.title.includes('Available for appointments') ||
-    event.title.startsWith('OPEN:')
-  );
+  const freeTimeEvents = events.filter(event => {
+    const isFreetime = event.title.includes('#freetime') ||
+                      event.title.includes('Available for appointments') ||
+                      event.title.startsWith('OPEN:');
+    
+    if (isFreetime) {
+      const eventDate = new Date(event.start);
+      const dayOfWeek = eventDate.getDay(); // 0 = Sunday, 6 = Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek];
+      
+      console.log(`   ✅ Found freetime event: "${event.title}"`);
+      console.log(`      📅 Date: ${eventDate.toLocaleDateString()} (${dayName})`);
+      console.log(`      🕐 Time: ${eventDate.toLocaleTimeString()} - ${new Date(event.end).toLocaleTimeString()}`);
+      console.log(`      📍 Location: ${event.location || 'None'}`);
+      console.log(`      🗓️ Weekend: ${isWeekend ? 'Yes' : 'No'}`);
+    }
+    
+    return isFreetime;
+  });
+
+  console.log(`🕐 Found ${freeTimeEvents.length} freetime events`);
 
   // Convert to available time slots with stable IDs
   const availableSlots = freeTimeEvents.map(event => {
@@ -288,6 +319,15 @@ function findFreeTimeSlots(events) {
     const titleHash = event.title.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const stableId = `slot_${startTime}_${endTime}_${titleHash}`;
 
+    const eventDate = new Date(event.start);
+    const dayOfWeek = eventDate.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    console.log(`   🎫 Creating slot ID: ${stableId}`);
+    console.log(`      📅 Start: ${new Date(event.start).toISOString()}`);
+    console.log(`      📅 End: ${new Date(event.end).toISOString()}`);
+    console.log(`      🗓️ Weekend: ${isWeekend}`);
+
     return {
       id: stableId,
       start: event.start,
@@ -295,15 +335,32 @@ function findFreeTimeSlots(events) {
       duration: Math.round((new Date(event.end) - new Date(event.start)) / (1000 * 60)), // minutes
       title: event.title,
       location: event.location,
-      originalEvent: event
+      originalEvent: event,
+      isWeekend: isWeekend
     };
   });
 
   // Filter out past slots and sort by date
   const now = new Date();
-  return availableSlots
-    .filter(slot => new Date(slot.start) > now)
-    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  console.log(`⏰ Current time: ${now.toISOString()}`);
+  
+  const futureSlots = availableSlots.filter(slot => {
+    const slotStart = new Date(slot.start);
+    const isFuture = slotStart > now;
+    
+    if (!isFuture) {
+      console.log(`   ⏰ Filtering out past slot: ${slot.title} (${slotStart.toISOString()})`);
+    }
+    
+    return isFuture;
+  });
+
+  console.log(`✅ Final available slots: ${futureSlots.length}`);
+  futureSlots.forEach(slot => {
+    console.log(`   🎫 ${slot.id} - ${new Date(slot.start).toLocaleDateString()} ${new Date(slot.start).toLocaleTimeString()} (Weekend: ${slot.isWeekend})`);
+  });
+
+  return futureSlots.sort((a, b) => new Date(a.start) - new Date(b.start));
 }
 
 async function createAppointmentEvent(appointmentData) {
@@ -387,19 +444,16 @@ function escapeICalValue(value) {
 }
 
 async function renameFreeTimeSlot(originalEvent, appointmentData) {
+  console.log('🔍 Starting renameFreeTimeSlot process');
+  console.log('Original event:', originalEvent);
+  
   try {
     const auth = Buffer.from(`${CALDAV_USER}:${CALDAV_PASSWORD}`).toString('base64');
 
+    console.log('🔍 Searching for freetime event in CalDAV...');
+    
     // Search for the freetime event in CalDAV
-    const response = await fetch(CALDAV_URL, {
-      method: 'REPORT',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/xml; charset=utf-8',
-        'Depth': '1',
-        'User-Agent': 'CalDAV-Dashboard/1.0'
-      },
-      body: `<?xml version="1.0" encoding="utf-8" ?>
+    const searchBody = `<?xml version="1.0" encoding="utf-8" ?>
 <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <D:prop>
     <D:getetag />
@@ -414,35 +468,74 @@ async function renameFreeTimeSlot(originalEvent, appointmentData) {
       </C:comp-filter>
     </C:comp-filter>
   </C:filter>
-</C:calendar-query>`,
+</C:calendar-query>`;
+
+    console.log('📤 Sending REPORT request to:', CALDAV_URL);
+    console.log('🔍 Search body:', searchBody);
+
+    const response = await fetch(CALDAV_URL, {
+      method: 'REPORT',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Depth': '1',
+        'User-Agent': 'CalDAV-Dashboard/1.0'
+      },
+      body: searchBody,
       timeout: 30000
     });
 
+    console.log(`📥 REPORT response: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
-      throw new Error(`Failed to search for freetime event: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('❌ REPORT request failed:', errorText);
+      throw new Error(`Failed to search for freetime event: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const xmlData = await response.text();
+    console.log(`📄 Received XML data length: ${xmlData.length} characters`);
+    
     const parser = new xml2js.Parser();
     const result = await parser.parseStringPromise(xmlData);
 
     // Find the matching freetime event
     const responses = result?.['d:multistatus']?.['d:response'] || [];
-    console.log(`Found ${responses.length} events in time range`);
+    console.log(`📋 Found ${responses.length} events in search results`);
 
-    for (const resp of responses) {
+    let eventFound = false;
+    
+    for (let i = 0; i < responses.length; i++) {
+      const resp = responses[i];
       const calendarData = resp?.['d:propstat']?.[0]?.['d:prop']?.[0]?.['cal:calendar-data']?.[0];
       const href = resp?.['d:href']?.[0];
 
-      console.log(`Checking event: ${href}`);
-      console.log(`Event contains title "${originalEvent.title}": ${calendarData?.includes(originalEvent.title)}`);
-      console.log(`Event contains "Appointment:": ${calendarData?.includes('Appointment:')}`);
-      console.log(`Href contains "appointment-": ${href?.includes('appointment-')}`);
+      console.log(`🔍 Checking event ${i + 1}/${responses.length}: ${href}`);
+      
+      if (!calendarData || !href) {
+        console.log('⚠️ Missing calendar data or href, skipping');
+        continue;
+      }
 
-      if (calendarData && href && 
-          calendarData.includes(originalEvent.title) && 
-          !calendarData.includes('Appointment:') &&
-          !href.includes('appointment-')) {
+      // Debug: Show the actual calendar data for the problematic event
+      if (calendarData.includes(originalEvent.title)) {
+        console.log('📄 Raw calendar data for matching event:');
+        console.log('--- START CALENDAR DATA ---');
+        console.log(calendarData);
+        console.log('--- END CALENDAR DATA ---');
+      }
+
+      const containsTitle = calendarData.includes(originalEvent.title);
+      const containsAppointment = calendarData.includes('Appointment:');
+      const isAppointmentHref = href.includes('appointment-');
+
+      console.log(`   - Contains title "${originalEvent.title}": ${containsTitle}`);
+      console.log(`   - Contains "Appointment:": ${containsAppointment}`);
+      console.log(`   - Href contains "appointment-": ${isAppointmentHref}`);
+
+      if (containsTitle && !containsAppointment && !isAppointmentHref) {
+        console.log('✅ Found matching freetime event!');
+        eventFound = true;
         
         // Parse the existing event to get its UID and other properties
         const lines = calendarData.split('\n').map(line => line.trim());
@@ -451,25 +544,102 @@ async function renameFreeTimeSlot(originalEvent, appointmentData) {
         let dtend = '';
         let location = '';
         let description = '';
+        let inVEvent = false;
         
         for (const line of lines) {
-          if (line.startsWith('UID:')) uid = line.split(':')[1];
-          if (line.startsWith('DTSTART:')) dtstart = line.split(':')[1];
-          if (line.startsWith('DTEND:')) dtend = line.split(':')[1];
-          if (line.startsWith('LOCATION:')) location = line.split(':').slice(1).join(':');
-          if (line.startsWith('DESCRIPTION:')) description = line.split(':').slice(1).join(':');
+          // Track if we're inside a VEVENT section (not VTIMEZONE)
+          if (line === 'BEGIN:VEVENT') {
+            inVEvent = true;
+            continue;
+          }
+          if (line === 'END:VEVENT') {
+            inVEvent = false;
+            continue;
+          }
+          
+          // Only parse properties when we're inside VEVENT
+          if (inVEvent) {
+            if (line.startsWith('UID:')) {
+              uid = line.substring(4);
+            }
+            if (line.startsWith('DTSTART')) {
+              const colonIndex = line.indexOf(':');
+              if (colonIndex > -1) {
+                dtstart = line.substring(colonIndex + 1);
+              }
+            }
+            if (line.startsWith('DTEND')) {
+              const colonIndex = line.indexOf(':');
+              if (colonIndex > -1) {
+                dtend = line.substring(colonIndex + 1);
+              }
+            }
+            if (line.startsWith('LOCATION:')) {
+              location = line.substring(9);
+            }
+            if (line.startsWith('DESCRIPTION:')) {
+              description = line.substring(12);
+            }
+          }
+        }
+
+        console.log('📋 Parsed event details:', { uid, dtstart, dtend, location, description });
+
+        if (!uid) {
+          console.error('❌ Missing UID');
+          continue;
+        }
+        
+        if (!dtstart || !dtend) {
+          console.error('❌ Missing DTSTART or DTEND:', { dtstart, dtend });
+          console.log('📄 Full calendar data for debugging:');
+          console.log(calendarData);
+          continue;
+        }
+
+        // Validate the date format
+        if (dtstart.length < 8 || dtend.length < 8) {
+          console.error('❌ Invalid date format:', { dtstart, dtend });
+          continue;
         }
 
         // Create updated iCal event with appointment details
         const now = new Date();
+        
+        // Ensure DTSTART and DTEND are properly formatted
+        let formattedDtstart = dtstart;
+        let formattedDtend = dtend;
+        
+        // If the dates don't contain 'T', they might be date-only, so we need to preserve the format
+        if (!dtstart.includes('T') && dtstart.length === 8) {
+          // Date-only format, keep as is
+          formattedDtstart = dtstart;
+        } else if (dtstart.includes('T')) {
+          // DateTime format, ensure it's properly formatted
+          formattedDtstart = dtstart.replace(/[^0-9TZ]/g, '');
+        }
+        
+        if (!dtend.includes('T') && dtend.length === 8) {
+          // Date-only format, keep as is
+          formattedDtend = dtend;
+        } else if (dtend.includes('T')) {
+          // DateTime format, ensure it's properly formatted
+          formattedDtend = dtend.replace(/[^0-9TZ]/g, '');
+        }
+        
+        console.log('📅 Formatted dates:', { 
+          original: { dtstart, dtend }, 
+          formatted: { formattedDtstart, formattedDtend } 
+        });
+        
         const updatedEvent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//CalDAV Dashboard//Appointment System//EN
 BEGIN:VEVENT
 UID:${uid}
 DTSTAMP:${formatICalDate(now)}
-DTSTART:${dtstart}
-DTEND:${dtend}
+DTSTART:${formattedDtstart}
+DTEND:${formattedDtend}
 SUMMARY:${escapeICalValue(appointmentData.summary)}
 DESCRIPTION:${escapeICalValue(appointmentData.description)}
 LOCATION:${escapeICalValue(appointmentData.location)}
@@ -483,7 +653,8 @@ END:VCALENDAR`;
         const eventFilename = href.split('/').pop();
         const updateUrl = `${CALDAV_URL}${eventFilename}`;
 
-        console.log(`Attempting to rename freetime event: ${updateUrl}`);
+        console.log(`🔄 Attempting to update event: ${updateUrl}`);
+        console.log('📝 Updated event data:', updatedEvent);
 
         const updateResponse = await fetch(updateUrl, {
           method: 'PUT',
@@ -496,20 +667,40 @@ END:VCALENDAR`;
           timeout: 30000
         });
 
+        console.log(`📥 PUT response: ${updateResponse.status} ${updateResponse.statusText}`);
+
         if (updateResponse.ok) {
+          const responseText = await updateResponse.text();
           console.log(`✅ Successfully renamed freetime event: ${eventFilename}`);
+          console.log('📥 PUT response body:', responseText);
           return { success: true, updatedUrl: updateUrl, eventId: uid };
         } else {
           const errorText = await updateResponse.text();
-          console.warn(`⚠️ Failed to rename event ${eventFilename}: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
+          console.error(`❌ Failed to rename event ${eventFilename}: ${updateResponse.status} ${updateResponse.statusText}`);
+          console.error('Error response body:', errorText);
+          throw new Error(`Failed to update event: ${updateResponse.status} ${updateResponse.statusText} - ${errorText}`);
         }
       }
     }
 
-    throw new Error('Could not find matching freetime event to rename');
+    if (!eventFound) {
+      console.error('❌ No matching freetime event found');
+      console.log('Available events in search results:');
+      responses.forEach((resp, i) => {
+        const href = resp?.['d:href']?.[0];
+        const calendarData = resp?.['d:propstat']?.[0]?.['d:prop']?.[0]?.['cal:calendar-data']?.[0];
+        if (calendarData) {
+          const summaryMatch = calendarData.match(/SUMMARY:([^\r\n]+)/);
+          const summary = summaryMatch ? summaryMatch[1] : 'No summary';
+          console.log(`  ${i + 1}. ${href} - ${summary}`);
+        }
+      });
+      throw new Error(`Could not find matching freetime event with title: "${originalEvent.title}"`);
+    }
 
   } catch (error) {
-    console.error('Error renaming freetime slot:', error);
+    console.error('❌ Error in renameFreeTimeSlot:', error);
+    console.error('Stack trace:', error.stack);
     throw error;
   }
 }
@@ -591,7 +782,11 @@ app.get('/api/available-slots', async (req, res) => {
 });
 
 app.post('/api/book-appointment', async (req, res) => {
+  console.log('📅 Booking appointment request received');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
   if (global.configurationMissing) {
+    console.error('❌ CalDAV configuration missing');
     return res.status(500).json({
       error: 'CalDAV configuration missing',
       details: 'Please create a .env file with CALDAV_URL, CALDAV_USER, and CALDAV_PASSWORD'
@@ -603,27 +798,84 @@ app.post('/api/book-appointment', async (req, res) => {
 
     // Validate required fields
     if (!slotId || !clientName || !clientEmail) {
+      console.error('❌ Missing required fields:', { slotId: !!slotId, clientName: !!clientName, clientEmail: !!clientEmail });
       return res.status(400).json({
         error: 'Missing required fields',
         details: 'slotId, clientName, and clientEmail are required'
       });
     }
 
+    console.log('✅ Required fields validated');
+    console.log('📋 Fetching calendar events...');
+
     // Get current available slots to find the selected one
     const events = await fetchCalendarEvents();
+    console.log(`📅 Found ${events.length} total events`);
+    
     const availableSlots = findFreeTimeSlots(events);
+    console.log(`🕐 Found ${availableSlots.length} available slots`);
+    
     const selectedSlot = availableSlots.find(slot => slot.id === slotId);
 
-    console.log('Looking for slot ID:', slotId);
-    console.log('Available slot IDs:', availableSlots.map(s => s.id));
+    console.log('🔍 Looking for slot ID:', slotId);
+    console.log('📋 Available slot IDs:', availableSlots.map(s => s.id));
+    
+    // Check if this is a weekend slot issue
+    const weekendSlots = availableSlots.filter(s => s.isWeekend);
+    const weekdaySlots = availableSlots.filter(s => !s.isWeekend);
+    console.log(`🗓️ Weekend slots: ${weekendSlots.length}, Weekday slots: ${weekdaySlots.length}`);
+    
+    if (slotId.includes('slot_') && !availableSlots.find(s => s.id === slotId)) {
+      console.log('❌ Slot ID not found in available slots');
+      console.log('🔍 Debugging slot ID components:');
+      
+      // Try to extract timestamp from slot ID
+      const slotIdParts = slotId.split('_');
+      if (slotIdParts.length >= 3) {
+        const startTimestamp = parseInt(slotIdParts[1]);
+        const endTimestamp = parseInt(slotIdParts[2]);
+        
+        if (!isNaN(startTimestamp) && !isNaN(endTimestamp)) {
+          const slotStartDate = new Date(startTimestamp);
+          const slotEndDate = new Date(endTimestamp);
+          const slotDayOfWeek = slotStartDate.getDay();
+          const isSlotWeekend = slotDayOfWeek === 0 || slotDayOfWeek === 6;
+          
+          console.log(`   📅 Requested slot date: ${slotStartDate.toLocaleDateString()} (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][slotDayOfWeek]})`);
+          console.log(`   🕐 Requested slot time: ${slotStartDate.toLocaleTimeString()} - ${slotEndDate.toLocaleTimeString()}`);
+          console.log(`   🗓️ Is weekend: ${isSlotWeekend}`);
+          
+          // Check if there's a similar slot with different ID
+          const similarSlots = availableSlots.filter(s => {
+            const timeDiff = Math.abs(new Date(s.start).getTime() - startTimestamp);
+            return timeDiff < 60000; // Within 1 minute
+          });
+          
+          if (similarSlots.length > 0) {
+            console.log('🔍 Found similar slots with different IDs:');
+            similarSlots.forEach(s => {
+              console.log(`   - ${s.id} (${new Date(s.start).toLocaleString()})`);
+            });
+          }
+        }
+      }
+    }
 
     if (!selectedSlot) {
+      console.error('❌ Selected slot not found');
       return res.status(404).json({
         error: 'Appointment slot not found or no longer available',
         details: `The selected time slot (${slotId}) may have been booked by someone else or is no longer available`,
         availableSlots: availableSlots.map(s => ({ id: s.id, start: s.start, end: s.end }))
       });
     }
+
+    console.log('✅ Selected slot found:', {
+      id: selectedSlot.id,
+      start: selectedSlot.start,
+      end: selectedSlot.end,
+      title: selectedSlot.title
+    });
 
     // Create appointment data
     const appointmentData = {
@@ -636,15 +888,18 @@ Phone: ${clientPhone || 'Not provided'}
 Notes: ${notes || 'None'}
 
 Original slot: ${selectedSlot.title}`,
-      location: location || selectedSlot.location || ''
+      location: selectedSlot.location || location || 'Office' // or whatever default you prefer
     };
+
+    console.log('📝 Appointment data prepared:', appointmentData);
 
     // Rename the original freetime slot to show it's booked (instead of creating a separate appointment)
     try {
+      console.log('🔄 Attempting to rename freetime slot...');
       const result = await renameFreeTimeSlot(selectedSlot.originalEvent, appointmentData);
-      console.log(`✅ Renamed freetime slot to show booking: ${selectedSlot.title}`);
+      console.log(`✅ Successfully renamed freetime slot: ${selectedSlot.title}`);
       
-      res.json({
+      const response = {
         success: true,
         message: 'Appointment booked successfully',
         appointment: {
@@ -656,23 +911,46 @@ Original slot: ${selectedSlot.title}`,
           location: appointmentData.location
         },
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      console.log('📤 Sending success response:', response);
+      res.json(response);
+      
     } catch (renameError) {
-      console.error(`❌ Failed to rename freetime slot: ${renameError.message}`);
-      res.status(500).json({
+      console.error(`❌ Failed to rename freetime slot:`, renameError);
+      console.error('Stack trace:', renameError.stack);
+      
+      const errorResponse = {
         error: 'Failed to book appointment',
         details: renameError.message,
-        timestamp: new Date().toISOString()
-      });
+        timestamp: new Date().toISOString(),
+        debugInfo: {
+          slotId,
+          originalEventTitle: selectedSlot.originalEvent?.title,
+          errorType: renameError.constructor.name
+        }
+      };
+      
+      console.log('📤 Sending error response:', errorResponse);
+      res.status(500).json(errorResponse);
     }
 
   } catch (error) {
-    console.error('Error booking appointment:', error);
-    res.status(500).json({
+    console.error('❌ Unexpected error in booking appointment:', error);
+    console.error('Stack trace:', error.stack);
+    
+    const errorResponse = {
       error: 'Failed to book appointment',
       details: error.message,
-      timestamp: new Date().toISOString()
-    });
+      timestamp: new Date().toISOString(),
+      debugInfo: {
+        errorType: error.constructor.name,
+        requestBody: req.body
+      }
+    };
+    
+    console.log('📤 Sending unexpected error response:', errorResponse);
+    res.status(500).json(errorResponse);
   }
 });
 
