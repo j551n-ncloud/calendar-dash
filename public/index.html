@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Calendar">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Calendar Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%234A9EFF'/><text y='70' font-size='60' text-anchor='middle' x='50' fill='white'>📅</text></svg>">
 </head>
 <body>
     <div class="container">
@@ -35,6 +43,8 @@
         <header>
             <div class="time-display" id="current-time">12:34</div>
             <div class="user-info">
+                <button id="theme-toggle" class="theme-toggle" title="Toggle theme">🌙</button>
+                <a href="/booking" class="booking-btn">📅 Book Appointment</a>
                 <button id="refresh-btn" class="refresh-btn">↻ Schedule</button>
             </div>
         </header>
@@ -46,7 +56,6 @@
             <div class="next-event-title" id="next-title">No upcoming events</div>
             <div class="next-event-duration" id="next-duration"></div>
             <div class="event-details" id="event-details">
-                <div class="detail-item" id="current-duration"></div>
                 <div class="detail-item" id="event-time"></div>
                 <div class="detail-item location-item" id="event-location"></div>
             </div>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <title>Book Appointment</title>
+    <link rel="stylesheet" href="booking.css">
+    <link rel="icon" type="image/png" href="calendar-icon.png">
+    
+    <!-- iOS Web App Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Book Appointment">
+</head>
+<body>
+    <div class="booking-container">
+        <div class="sidebar">
+            <div class="brand">
+                <h1>📅 Book Appointment</h1>
+                <div class="meeting-info">
+                    <div class="meeting-duration">
+                        <span class="icon">⏱️</span>
+                        <span id="selectedDuration">Select a time slot</span>
+                    </div>
+                </div>
+                
+                <div class="time-format">
+                    <span>Time format: 24h</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="top-navigation">
+                <a href="/" class="back-link-top">← Back to Calendar</a>
+            </div>
+            
+            <div class="calendar-header">
+                <div class="month-nav">
+                    <button class="nav-btn" id="prevMonth">‹</button>
+                    <h2 id="currentMonth">August 2025</h2>
+                    <button class="nav-btn" id="nextMonth">›</button>
+                </div>
+                <div class="selected-date" id="selectedDate">Select an available time slot to schedule your appointment</div>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="weekdays">
+                    <div class="weekday">MON</div>
+                    <div class="weekday">TUE</div>
+                    <div class="weekday">WED</div>
+                    <div class="weekday">THU</div>
+                    <div class="weekday">FRI</div>
+                    <div class="weekday">SAT</div>
+                    <div class="weekday">SUN</div>
+                </div>
+                <div class="days-grid" id="daysGrid">
+                    <!-- Calendar days will be generated here -->
+                </div>
+            </div>
+
+            <div class="time-slots-section">
+                <div class="slots-loading" id="slotsLoading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading available appointments...</p>
+                </div>
+                <div class="time-slots" id="timeSlots" style="display: none;">
+                    <!-- Time slots will be generated here -->
+                </div>
+                <div class="no-slots" id="noSlots" style="display: none;">
+                    <p>No appointment slots available at this time.</p>
+                    <p>Please check back later or contact us directly.</p>
+                </div>
+            </div>
+
+            <!-- Booking Form Modal -->
+            <div class="booking-modal" id="bookingModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Book Appointment</h3>
+                        <button class="close-btn" id="closeModal">×</button>
+                    </div>
+                    <div class="selected-slot-info" id="selectedSlotInfo"></div>
+                    
+                    <form class="booking-form" id="bookingForm">
+                        <div class="form-group">
+                            <label for="clientName">Full Name *</label>
+                            <input type="text" id="clientName" name="clientName" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="clientEmail">Email Address *</label>
+                            <input type="email" id="clientEmail" name="clientEmail" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="clientPhone">Phone Number</label>
+                            <input type="tel" id="clientPhone" name="clientPhone">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="appointmentLocation">Location</label>
+                            <input type="text" id="appointmentLocation" name="appointmentLocation" placeholder="Office, Video call, Phone, etc.">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes">Additional Notes</label>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Any specific requirements or topics to discuss..."></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" id="cancelBooking">Cancel</button>
+                            <button type="submit" class="btn-primary" id="submitBooking">
+                                <span class="btn-text">Book Appointment</span>
+                                <span class="btn-loading" style="display: none;">Booking...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Success Modal -->
+            <div class="success-modal" id="successModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="success-message">
+                        <h3>✅ Appointment Booked Successfully!</h3>
+                        <div class="appointment-details" id="appointmentDetails"></div>
+                        <div class="success-actions">
+                            <button class="btn-primary" onclick="location.reload()">Book Another</button>
+                            <a href="/" class="btn-secondary">View Calendar</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script src="booking.js"></script>
+</body>
+</html>

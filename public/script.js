@@ -6,6 +6,7 @@ class CalendarDashboard {
     }
 
     init() {
+        this.initTheme();
         this.bindEvents();
         this.updateClock();
         this.loadEvents();
@@ -39,10 +40,109 @@ class CalendarDashboard {
         });
     }
 
+    initTheme() {
+        // Load saved theme preference
+        const savedTheme = localStorage.getItem('calendar-theme') || 'dark';
+        this.setTheme(savedTheme);
+    }
+
+    setTheme(theme) {
+        const body = document.body;
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        if (theme === 'light') {
+            body.classList.add('light-theme');
+            if (themeToggle) themeToggle.textContent = '☀️';
+        } else {
+            body.classList.remove('light-theme');
+            if (themeToggle) themeToggle.textContent = '🌙';
+        }
+        
+        localStorage.setItem('calendar-theme', theme);
+    }
+
+    toggleTheme() {
+        const isLight = document.body.classList.contains('light-theme');
+        this.setTheme(isLight ? 'dark' : 'light');
+    }
+
     bindEvents() {
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            this.loadEvents();
-        });
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.loadEvents();
+            });
+        }
+
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+        
+        // Mobile pull-to-refresh functionality
+        this.setupPullToRefresh();
+        
+        // Prevent zoom on double tap for iOS
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (event) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    }
+    
+    setupPullToRefresh() {
+        let startY = 0;
+        let currentY = 0;
+        let pullDistance = 0;
+        let isPulling = false;
+        const threshold = 80;
+        
+        document.addEventListener('touchstart', (e) => {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+            }
+        }, { passive: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isPulling) return;
+            
+            currentY = e.touches[0].clientY;
+            pullDistance = currentY - startY;
+            
+            if (pullDistance > 0 && window.scrollY === 0) {
+                // Visual feedback for pull-to-refresh
+                const container = document.querySelector('.container');
+                const opacity = Math.min(pullDistance / threshold, 1);
+                container.style.transform = `translateY(${Math.min(pullDistance * 0.5, 40)}px)`;
+                container.style.opacity = 1 - (opacity * 0.1);
+                
+                if (pullDistance > threshold) {
+                    // Show refresh indicator
+                    document.body.style.setProperty('--pull-refresh', '1');
+                }
+            }
+        }, { passive: true });
+        
+        document.addEventListener('touchend', () => {
+            if (isPulling && pullDistance > threshold) {
+                this.loadEvents();
+            }
+            
+            // Reset visual state
+            const container = document.querySelector('.container');
+            container.style.transform = '';
+            container.style.opacity = '';
+            document.body.style.removeProperty('--pull-refresh');
+            
+            isPulling = false;
+            pullDistance = 0;
+        }, { passive: true });
     }
 
     updateClock() {
@@ -154,29 +254,8 @@ class CalendarDashboard {
     }
 
     renderEventDetails(event, isCurrent) {
-        const currentDurationEl = document.getElementById('current-duration');
         const eventTimeEl = document.getElementById('event-time');
         const eventLocationEl = document.getElementById('event-location');
-
-        // Show total duration of current event
-        const start = new Date(event.start);
-        const end = event.end ? new Date(event.end) : null;
-
-        if (end) {
-            const totalMinutes = Math.round((end - start) / (1000 * 60));
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-
-            let durationText = '';
-            if (hours > 0) {
-                durationText = `Dauer: ${hours} Std. ${minutes > 0 ? minutes + ' Min.' : ''}`;
-            } else {
-                durationText = `Dauer: ${minutes} Min.`;
-            }
-            currentDurationEl.textContent = durationText;
-        } else {
-            currentDurationEl.textContent = '';
-        }
 
         // Show event time
         const timeText = this.formatEventTime(event);
