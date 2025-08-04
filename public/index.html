@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Modern Idle Animations -->
+        <div class="ambient-animations">
+            <div class="floating-dots">
+                <div class="dot dot-1"></div>
+                <div class="dot dot-2"></div>
+                <div class="dot dot-3"></div>
+                <div class="dot dot-4"></div>
+                <div class="dot dot-5"></div>
+            </div>
+            <div class="gradient-orbs">
+                <div class="orb orb-1"></div>
+                <div class="orb orb-2"></div>
+            </div>
+        </div>
+        
+        <!-- Refresh Animation Overlay -->
+        <div class="refresh-overlay" id="refresh-overlay">
+            <div class="refresh-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+        </div>
+        
+        <header>
+            <div class="time-display" id="current-time">12:34</div>
+            <div class="user-info">
+                <button id="refresh-btn" class="refresh-btn">↻ Schedule</button>
+            </div>
+        </header>
+        
+        <div id="loading" class="loading">Loading calendar events...</div>
+        <div id="error" class="error hidden"></div>
+        
+        <div id="main-content" class="main-content hidden">
+            <div class="next-event-title" id="next-title">No upcoming events</div>
+            <div class="next-event-duration" id="next-duration"></div>
+            <div class="event-details" id="event-details">
+                <div class="detail-item" id="current-duration"></div>
+                <div class="detail-item" id="event-time"></div>
+                <div class="detail-item location-item" id="event-location"></div>
+            </div>
+        </div>
+        
+        <div id="no-events" class="no-events hidden">
+            <div>No upcoming events</div>
+        </div>
+        
+        <div class="bottom-bar" id="bottom-bar">
+            <div class="upcoming-events" id="upcoming-summary"></div>
+            <div class="next-duration" id="next-event-duration"></div>
+        </div>
+        
+        <!-- Hidden elements for compatibility -->
+        <div id="next-event" class="hidden"></div>
+        <div id="events-section" class="events-section hidden">
+            <div id="events-list" class="events-list"></div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
