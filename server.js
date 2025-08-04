@@ -12,9 +12,21 @@ const CALDAV_URL = process.env.CALDAV_URL;
 const CALDAV_USER = process.env.CALDAV_USER;
 const CALDAV_PASSWORD = process.env.CALDAV_PASSWORD;
 
-if (!CALDAV_URL || !CALDAV_USER || !CALDAV_PASSWORD) {
-  console.error('Missing required environment variables: CALDAV_URL, CALDAV_USER, CALDAV_PASSWORD');
-  process.exit(1);
+const missingVars = [];
+if (!CALDAV_URL) missingVars.push('CALDAV_URL');
+if (!CALDAV_USER) missingVars.push('CALDAV_USER');
+if (!CALDAV_PASSWORD) missingVars.push('CALDAV_PASSWORD');
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '));
+  console.error('📝 Please create a .env file with your CalDAV credentials');
+  console.error('📖 See .env.example for configuration examples');
+  
+  // Don't exit, but set a flag to show helpful error messages
+  global.configurationMissing = true;
+} else {
+  console.log('✅ CalDAV configuration loaded successfully');
+  global.configurationMissing = false;
 }
 
 app.use(express.static('public'));
@@ -249,6 +261,16 @@ function parseICalDate(dateString) {
 
 // API Routes
 app.get('/api/events', async (req, res) => {
+  // Check if configuration is missing
+  if (global.configurationMissing) {
+    return res.status(500).json({
+      error: 'CalDAV configuration missing',
+      details: 'Please create a .env file with CALDAV_URL, CALDAV_USER, and CALDAV_PASSWORD',
+      help: 'See .env.example for configuration examples',
+      timestamp: new Date().toISOString()
+    });
+  }
+
   try {
     const events = await fetchCalendarEvents();
     res.json(events);

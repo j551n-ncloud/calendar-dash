@@ -4,7 +4,7 @@ services:
   caldav-dashboard:
     build: .
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       - CALDAV_URL=${CALDAV_URL}
       - CALDAV_USER=${CALDAV_USER}
