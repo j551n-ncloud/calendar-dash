@@ -153,7 +153,10 @@ class CalendarDashboard {
             minute: '2-digit',
             hour12: false
         });
-        document.getElementById('current-time').textContent = timeString;
+        const currentTimeEl = document.getElementById('current-time');
+        if (currentTimeEl) {
+            currentTimeEl.textContent = timeString;
+        }
     }
 
     async loadEvents() {
@@ -195,12 +198,20 @@ class CalendarDashboard {
     }
 
     showError(message) {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('error').classList.remove('hidden');
-        document.getElementById('error').textContent = message;
-        document.getElementById('main-content').classList.add('hidden');
-        document.getElementById('no-events').classList.add('hidden');
-        document.getElementById('bottom-bar').style.display = 'none';
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const mainContent = document.getElementById('main-content');
+        const noEvents = document.getElementById('no-events');
+        const bottomBar = document.getElementById('bottom-bar');
+
+        if (loading) loading.classList.add('hidden');
+        if (error) {
+            error.classList.remove('hidden');
+            error.textContent = message;
+        }
+        if (mainContent) mainContent.classList.add('hidden');
+        if (noEvents) noEvents.classList.add('hidden');
+        if (bottomBar) bottomBar.style.display = 'none';
     }
 
     renderEvents() {
@@ -243,11 +254,22 @@ class CalendarDashboard {
     }
 
     renderNextEvent(event, isCurrent = false) {
-        document.getElementById('main-content').classList.remove('hidden');
-        document.getElementById('next-title').textContent = event.title;
+        const mainContent = document.getElementById('main-content');
+        const nextTitle = document.getElementById('next-title');
+        const nextDuration = document.getElementById('next-duration');
+
+        if (mainContent) {
+            mainContent.classList.remove('hidden');
+        }
+
+        if (nextTitle) {
+            nextTitle.textContent = event.title;
+        }
 
         const duration = this.getEventDuration(event, isCurrent);
-        document.getElementById('next-duration').textContent = duration;
+        if (nextDuration) {
+            nextDuration.textContent = duration;
+        }
 
         // Show additional event details
         this.renderEventDetails(event, isCurrent);
