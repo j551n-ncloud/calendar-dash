@@ -14,7 +14,7 @@ A single-user calendar display for any CalDAV server, inspired by [spacepad.io](
 
 <img src="pictures/display-portrait.png" alt="Tablet display, portrait" width="420">
 
-The screenshots use demo calendars.
+The screenshots use demo calendars. The dot field in the background is animated and follows the cursor.
 
 ## Features
 

@@ -136,7 +136,7 @@ function headline(s: Status, f: F, today: string) {
 // the dark card in the hero: what is on now, or what is next
 export function Spotlight({ status, now, f, today }: { status: Status; now: number; f: F; today: string }) {
   const e = status.kind === "busy" ? status.current : status.next;
-  const card = "rounded-2xl border border-white/10 bg-white/5 p-6 text-white backdrop-blur-md";
+  const card = "rounded-2xl border border-white/10 bg-[#0b1013]/75 p-6 text-white backdrop-blur-md";
   if (!e) return <div className={`${card} text-white/75`}>No upcoming events.</div>;
 
   const running = status.kind === "busy";
