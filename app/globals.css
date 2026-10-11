@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* class-based dark mode, toggled by components/ThemeToggle.tsx */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* fumadocs-ui neutral palette */
+@theme {
+  --color-fd-background: hsl(0, 0%, 96%);
+  --color-fd-foreground: hsl(0, 0%, 3.9%);
+  --color-fd-muted: hsl(0, 0%, 96.1%);
+  --color-fd-muted-foreground: hsl(0, 0%, 45.1%);
+  --color-fd-card: hsl(0, 0%, 94.7%);
+  --color-fd-border: hsla(0, 0%, 80%, 50%);
+  --color-fd-secondary: hsl(0, 0%, 93.1%);
+  --color-fd-accent: hsla(0, 0%, 82%, 50%);
+  --color-fd-ring: hsl(0, 0%, 63.9%);
+  --color-fd-error: oklch(63.7% 0.237 25.331);
+  --color-fd-success: oklch(72.3% 0.219 149.579);
+}
+
+.dark {
+  --color-fd-background: hsl(0, 0%, 7.04%);
+  --color-fd-foreground: hsl(0, 0%, 92%);
+  --color-fd-muted: hsl(0, 0%, 12.9%);
+  --color-fd-muted-foreground: hsla(0, 0%, 70%, 0.8);
+  --color-fd-card: hsl(0, 0%, 9.8%);
+  --color-fd-border: hsla(0, 0%, 40%, 20%);
+  --color-fd-secondary: hsl(0, 0%, 12.9%);
+  --color-fd-accent: hsla(0, 0%, 40.9%, 30%);
+  --color-fd-ring: hsl(0, 0%, 54.9%);
+}
+
+* { border-color: var(--color-fd-border); }
+html { scroll-behavior: smooth; color-scheme: light; }
+html.dark { color-scheme: dark; }
+body { background: var(--color-fd-background); color: var(--color-fd-foreground); }
+
+/* ── accent ── */
+:root { --accent: #0047b3; --accent-hover: #003899; }
+.dark { --accent: #6b9cf5; --accent-hover: #8db3f8; }
+.accent-text { color: var(--accent); }
+.hero .accent-text { color: #7fb2ff; }
+.btn-fill { background: var(--accent); color: #fff; }
+.btn-fill:not(:disabled):hover { background: var(--accent-hover); }
+.dark .btn-fill { color: #0b1013; }
+.icon-box { color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, transparent); }
+.focus-accent:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+
+/* ── form controls ── */
+.control {
+  width: 100%; border-radius: .75rem; border-width: 1px;
+  background: var(--color-fd-background); padding: .55rem .8rem;
+  font-size: .875rem; line-height: 1.5;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.control::placeholder { color: var(--color-fd-muted-foreground); }
+.control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+textarea.control { resize: vertical; field-sizing: content; }
+select.control {
+  appearance: none; cursor: pointer; padding-right: 2rem;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%;
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
+
+/* ── hero ── */
+.hero { background: #0b1013; border-color: rgba(255,255,255,.08); }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: #9ca3af; }
+.live-dot.online { background: #7fb2ff; animation: pulse 2s infinite; }
+.live-dot.offline { background: #f87171; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
+
+
+/* hero dither field (components/DitherField.tsx), the CSS dots are the no-WebGL fallback */
+.dither-field {
+  position: absolute; inset: 0; overflow: hidden;
+  background:
+    linear-gradient(to top, rgba(8,12,14,.9) 0%, rgba(8,12,14,.5) 55%, rgba(8,12,14,.7) 100%),
+    radial-gradient(90% 90% at 85% 20%, rgba(0,71,179,.28), transparent 62%);
+}
+.dither-field::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(138,138,147,.3) .8px, transparent 1.1px);
+  background-size: 4px 4px;
+  mask-image: radial-gradient(58% 74% at 22% 22%, #000, transparent 72%), radial-gradient(46% 62% at 78% 44%, #000, transparent 70%), radial-gradient(72% 52% at 46% 86%, #000, transparent 74%);
+}
+.dither-field-canvas {
+  position: relative; display: block; width: 100%; height: 100%;
+  mask-image: radial-gradient(ellipse 45% 45% at 25% 68%, transparent 35%, #000 100%);
+  opacity: 0; transition: opacity 350ms ease-out;
+}
+.dither-field-canvas.live { opacity: 1; }
+.dither-field:has(.dither-field-canvas.live)::before { display: none; }
+
+.rise { animation: rise 750ms ease both; }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
+.spin { animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@media (max-width: 640px) {
+  .dither-field-canvas { mask-image: radial-gradient(ellipse 95% 40% at 35% 72%, transparent 40%, #000 100%); }
+}
+
+/* ── status, as on a room display: free, starting soon, busy ── */
+:root { --free: #0047b3; --soon: #b45309; --busy: #b91c1c; }
+.dark { --free: #6b9cf5; --soon: #fbbf24; --busy: #f87171; }
+.status-free { --state: var(--free); }
+.status-soon { --state: var(--soon); }
+.status-busy { --state: var(--busy); }
+.state-text { color: var(--state); }
+.state-pill { color: var(--state); background: color-mix(in oklab, var(--state) 10%, transparent); border-color: color-mix(in oklab, var(--state) 30%, transparent); }
+.hero .state-pill { color: #fff; background: color-mix(in oklab, var(--state) 35%, transparent); border-color: color-mix(in oklab, var(--state) 60%, transparent); }
+.live-dot.free { background: #7fb2ff; }
+.live-dot.soon { background: #fbbf24; animation: pulse 2s infinite; }
+.live-dot.busy { background: #f87171; animation: pulse 2s infinite; }
+.progress { height: 4px; border-radius: 9999px; background: rgba(255,255,255,.12); overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--state); transition: width 1s linear; }
+.next-ring { box-shadow: inset 3px 0 0 var(--accent); background: color-mix(in oklab, var(--accent) 6%, var(--color-fd-card)); }
+
+/* the hero is always dark, so it always takes the bright state colours */
+.hero.status-free { --state: #7fb2ff; }
+.hero.status-soon { --state: #fbbf24; }
+.hero.status-busy { --state: #f87171; }
+
+/* full-screen tablet display (/display): the state colour glows up from a corner of the dither field */
+.state-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(90% 80% at 0% 100%, color-mix(in oklab, var(--state) 32%, transparent), transparent 65%);
+  transition: background 600ms ease;
+}
+.tabular { font-variant-numeric: tabular-nums; }
+/* the display scales everything with the screen: rem grows from 16px on a tablet to 32px on a big monitor */
+:root:has(.display-scale) { font-size: clamp(16px, min(1.1vw, 1.9vh) + 2px, 32px); }
