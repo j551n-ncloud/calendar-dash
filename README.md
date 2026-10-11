@@ -2,6 +2,20 @@
 
 A single-user calendar display for any CalDAV server, inspired by [spacepad.io](https://spacepad.io). Shows whether you are free or busy, the event that is on now or next, and the agenda for the coming days. A full-screen view at `/display` turns a spare tablet into a room display.
 
+## Screenshots
+
+**Dashboard:** status and the current event up front, then the agenda for the coming days.
+
+![Dashboard](pictures/dashboard.png)
+
+**Tablet display** at `/display`: full screen, the state colour glows up from the corner.
+
+![Tablet display, landscape](pictures/display.png)
+
+<img src="pictures/display-portrait.png" alt="Tablet display, portrait" width="420">
+
+The screenshots use demo calendars.
+
 ## Features
 
 - Works with any CalDAV server (Nextcloud, Radicale, Baïkal, iCloud, Fastmail), and with plain ICS feeds
